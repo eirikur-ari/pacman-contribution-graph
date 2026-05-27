@@ -1,6 +1,6 @@
 {
 	"name": "@pacman-contribution-graph/action",
-	"version": "5.1.0",
+	"version": "5.2.0",
 	"scripts": {
 		"build": "ncc build src/index.js -o dist"
 	},
