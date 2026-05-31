@@ -6171,6 +6171,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _github_contributions__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./github-contributions */ "./src/shared/providers/github-contributions.ts");
 /* harmony import */ var _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./gitlab-contributions */ "./src/shared/providers/gitlab-contributions.ts");
+/* harmony import */ var _scenarios__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./scenarios */ "./src/shared/providers/scenarios.ts");
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -6182,6 +6183,8 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 };
 
 
+
+const fetchScenarioContributions = (store) => __awaiter(void 0, void 0, void 0, function* () { return (0,_scenarios__WEBPACK_IMPORTED_MODULE_2__.generateScenarioContributions)(store.config.scenario).contributions; });
 const fetchContributions = (store) => __awaiter(void 0, void 0, void 0, function* () {
     if (store.config.contributions) {
         return store.config.contributions;
@@ -6191,6 +6194,8 @@ const fetchContributions = (store) => __awaiter(void 0, void 0, void 0, function
             return yield (0,_gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions)(store);
         case 'github':
             return yield (0,_github_contributions__WEBPACK_IMPORTED_MODULE_0__.fetchGithubContributions)(store);
+        case 'scenario':
+            return yield fetchScenarioContributions(store);
         default:
             throw new Error(`Unsupported platform: ${store.config.platform}`);
     }
@@ -6198,35 +6203,37 @@ const fetchContributions = (store) => __awaiter(void 0, void 0, void 0, function
 const Providers = {
     fetchContributions,
     fetchGithubContributions: _github_contributions__WEBPACK_IMPORTED_MODULE_0__.fetchGithubContributions,
-    fetchGitlabContributions: _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions
+    fetchGitlabContributions: _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions,
+    fetchScenarioContributions,
+    generateScenarioContributions: _scenarios__WEBPACK_IMPORTED_MODULE_2__.generateScenarioContributions
 };
 
 
 /***/ },
 
-/***/ "./src/shared/scenarios.ts"
-/*!*********************************!*\
-  !*** ./src/shared/scenarios.ts ***!
-  \*********************************/
+/***/ "./src/shared/providers/scenarios.ts"
+/*!*******************************************!*\
+  !*** ./src/shared/providers/scenarios.ts ***!
+  \*******************************************/
 (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   SCENARIOS: () => (/* binding */ SCENARIOS),
 /* harmony export */   SCENARIO_DAYS: () => (/* binding */ SCENARIO_DAYS),
 /* harmony export */   SCENARIO_WEEKS: () => (/* binding */ SCENARIO_WEEKS),
 /* harmony export */   generateScenarioContributions: () => (/* binding */ generateScenarioContributions),
 /* harmony export */   isScenarioName: () => (/* binding */ isScenarioName),
 /* harmony export */   resolveScenarioName: () => (/* binding */ resolveScenarioName)
 /* harmony export */ });
+/* harmony import */ var _types__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../types */ "./src/shared/types.ts");
+
 const SCENARIO_WEEKS = 53;
 const SCENARIO_DAYS = 7;
-const SCENARIOS = ['full', 'empty', 'random', 'checkerboard', 'gradient', 'streaks'];
-const isScenarioName = (value) => SCENARIOS.includes(value);
+const isScenarioName = (value) => _types__WEBPACK_IMPORTED_MODULE_0__.SCENARIOS.includes(value);
 const resolveScenarioName = (scenarioArg) => {
     const scenarioName = scenarioArg === '' || scenarioArg === undefined ? 'random' : scenarioArg;
     if (!isScenarioName(scenarioName)) {
-        throw new Error(`Unknown scenario "${scenarioName}". Available scenarios: ${SCENARIOS.join(', ')}`);
+        throw new Error(`Unknown scenario "${scenarioName}". Available scenarios: ${_types__WEBPACK_IMPORTED_MODULE_0__.SCENARIOS.join(', ')}`);
     }
     return scenarioName;
 };
@@ -6243,14 +6250,15 @@ const createScenarioCounts = (name) => {
             return createEmptyCounts();
         case 'full':
             return createFullCounts(8);
-        case 'random':
-            return createRandomCounts({ density: 0.5, min: 1, max: 8 });
         case 'checkerboard':
             return createCheckerboardCounts({ low: 0, high: 10 });
         case 'gradient':
             return createGradientCounts({ min: 0, max: 12 });
         case 'streaks':
             return createStreakCounts();
+        case 'random':
+        default:
+            return createRandomCounts({ density: 0.5, min: 1, max: 8 });
     }
 };
 const createEmptyCounts = () => Array.from({ length: SCENARIO_WEEKS }, () => Array(SCENARIO_DAYS).fill(0));
@@ -6377,6 +6385,23 @@ const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
 /***/ },
 
+/***/ "./src/shared/types.ts"
+/*!*****************************!*\
+  !*** ./src/shared/types.ts ***!
+  \*****************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PLATFORMS: () => (/* binding */ PLATFORMS),
+/* harmony export */   SCENARIOS: () => (/* binding */ SCENARIOS)
+/* harmony export */ });
+const PLATFORMS = ['github', 'gitlab', 'scenario'];
+const SCENARIOS = ['full', 'empty', 'random', 'checkerboard', 'gradient', 'streaks'];
+
+
+/***/ },
+
 /***/ "./src/shared/utils/utils.ts"
 /*!***********************************!*\
   !*** ./src/shared/utils/utils.ts ***!
@@ -6398,10 +6423,15 @@ __webpack_require__.r(__webpack_exports__);
 /* ─────────────────────────── Helpers ─────────────────────────── */
 const weeksBetween = (start, end) => Math.floor((end.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
 const truncateToUTCDate = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const getLatestContributionDate = (store) => store.contributions.reduce((latestDate, contribution) => {
+    const contributionDate = truncateToUTCDate(new Date(contribution.date));
+    return latestDate === undefined || contributionDate > latestDate ? contributionDate : latestDate;
+}, undefined);
 const getGridEndDate = (store) => {
     const endDate = truncateToUTCDate(new Date());
-    if (store.config.includeFutureContributions) {
-        endDate.setUTCDate(endDate.getUTCDate() + (_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT - 1 - endDate.getUTCDay()));
+    const latestContributionDate = getLatestContributionDate(store);
+    if (latestContributionDate && latestContributionDate > endDate) {
+        return latestContributionDate;
     }
     return endDate;
 };
@@ -6573,13 +6603,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_1__.BreakoutRenderer),
 /* harmony export */   GAME_REGISTRY: () => (/* reexport safe */ _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__.GAME_REGISTRY),
 /* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_2__.GalagaRenderer),
+/* harmony export */   PLATFORMS: () => (/* reexport safe */ _shared_types__WEBPACK_IMPORTED_MODULE_7__.PLATFORMS),
 /* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PacmanRenderer),
 /* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PlayerStyle),
 /* harmony export */   PuzzleBobbleRenderer: () => (/* reexport safe */ _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__.PuzzleBobbleRenderer),
-/* harmony export */   SCENARIOS: () => (/* reexport safe */ _shared_scenarios__WEBPACK_IMPORTED_MODULE_6__.SCENARIOS),
-/* harmony export */   generateScenarioContributions: () => (/* reexport safe */ _shared_scenarios__WEBPACK_IMPORTED_MODULE_6__.generateScenarioContributions),
-/* harmony export */   isScenarioName: () => (/* reexport safe */ _shared_scenarios__WEBPACK_IMPORTED_MODULE_6__.isScenarioName),
-/* harmony export */   resolveScenarioName: () => (/* reexport safe */ _shared_scenarios__WEBPACK_IMPORTED_MODULE_6__.resolveScenarioName)
+/* harmony export */   SCENARIOS: () => (/* reexport safe */ _shared_types__WEBPACK_IMPORTED_MODULE_7__.SCENARIOS),
+/* harmony export */   generateScenarioContributions: () => (/* reexport safe */ _shared_providers_scenarios__WEBPACK_IMPORTED_MODULE_6__.generateScenarioContributions),
+/* harmony export */   isScenarioName: () => (/* reexport safe */ _shared_providers_scenarios__WEBPACK_IMPORTED_MODULE_6__.isScenarioName),
+/* harmony export */   resolveScenarioName: () => (/* reexport safe */ _shared_providers_scenarios__WEBPACK_IMPORTED_MODULE_6__.resolveScenarioName)
 /* harmony export */ });
 /* harmony import */ var _bomberman_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bomberman/index */ "./src/bomberman/index.ts");
 /* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
@@ -6587,7 +6618,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
 /* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
 /* harmony import */ var _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./shared/arcade-renderer */ "./src/shared/arcade-renderer.ts");
-/* harmony import */ var _shared_scenarios__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./shared/scenarios */ "./src/shared/scenarios.ts");
+/* harmony import */ var _shared_providers_scenarios__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./shared/providers/scenarios */ "./src/shared/providers/scenarios.ts");
+/* harmony import */ var _shared_types__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./shared/types */ "./src/shared/types.ts");
+
 
 
 
@@ -6604,6 +6637,7 @@ const __webpack_exports__BombermanRenderer = __webpack_exports__.BombermanRender
 const __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
 const __webpack_exports__GAME_REGISTRY = __webpack_exports__.GAME_REGISTRY;
 const __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
+const __webpack_exports__PLATFORMS = __webpack_exports__.PLATFORMS;
 const __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
 const __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
 const __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
@@ -6611,6 +6645,6 @@ const __webpack_exports__SCENARIOS = __webpack_exports__.SCENARIOS;
 const __webpack_exports__generateScenarioContributions = __webpack_exports__.generateScenarioContributions;
 const __webpack_exports__isScenarioName = __webpack_exports__.isScenarioName;
 const __webpack_exports__resolveScenarioName = __webpack_exports__.resolveScenarioName;
-export { __webpack_exports__ARCADE_GAMES as ARCADE_GAMES, __webpack_exports__ArcadeRenderer as ArcadeRenderer, __webpack_exports__BombermanRenderer as BombermanRenderer, __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GAME_REGISTRY as GAME_REGISTRY, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer, __webpack_exports__SCENARIOS as SCENARIOS, __webpack_exports__generateScenarioContributions as generateScenarioContributions, __webpack_exports__isScenarioName as isScenarioName, __webpack_exports__resolveScenarioName as resolveScenarioName };
+export { __webpack_exports__ARCADE_GAMES as ARCADE_GAMES, __webpack_exports__ArcadeRenderer as ArcadeRenderer, __webpack_exports__BombermanRenderer as BombermanRenderer, __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GAME_REGISTRY as GAME_REGISTRY, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PLATFORMS as PLATFORMS, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer, __webpack_exports__SCENARIOS as SCENARIOS, __webpack_exports__generateScenarioContributions as generateScenarioContributions, __webpack_exports__isScenarioName as isScenarioName, __webpack_exports__resolveScenarioName as resolveScenarioName };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map
