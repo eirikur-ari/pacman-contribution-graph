@@ -1,5 +1,3 @@
-import type { ScenarioName } from './providers/scenarios';
-
 export type ContributionLevel = 'NONE' | 'FIRST_QUARTILE' | 'SECOND_QUARTILE' | 'THIRD_QUARTILE' | 'FOURTH_QUARTILE';
 
 export interface Contribution {
@@ -35,11 +33,17 @@ export interface AnimationData {
 	values: string;
 }
 
+export const PLATFORMS = ['github', 'gitlab', 'scenario'] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+export const SCENARIOS = ['full', 'empty', 'random', 'checkerboard', 'gradient', 'streaks'] as const;
+export type Scenario = (typeof SCENARIOS)[number];
+
 export interface BaseConfig {
-	platform: 'github' | 'gitlab';
+	platform: Platform;
 	username: string;
 	contributions?: Contribution[];
-	scenario?: ScenarioName;
+	scenario?: Scenario;
 	svgCallback: (blobUrl: string) => void;
 	gameOverCallback: () => void;
 	gameTheme: ThemeKeys;

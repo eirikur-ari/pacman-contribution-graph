@@ -4,7 +4,7 @@
 import fs from 'fs';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
-import { ARCADE_GAMES, ArcadeRenderer, SCENARIOS } from '../dist/pacman-contribution-graph.min.js';
+import { ARCADE_GAMES, ArcadeRenderer, PLATFORMS, SCENARIOS } from '../dist/pacman-contribution-graph.min.js';
 
 const argv = yargs(hideBin(process.argv))
 	.option('game', {
@@ -16,8 +16,9 @@ const argv = yargs(hideBin(process.argv))
 	})
 	.option('platform', {
 		alias: 'pl',
-		describe: 'Platform: github, gitlab',
-		choices: ['github', 'gitlab'],
+		describe: `Platform: ${PLATFORMS.join(', ')}`,
+		choices: PLATFORMS,
+		demandOption: true,
 		type: 'string'
 	})
 	.option('gameTheme', {
@@ -29,11 +30,14 @@ const argv = yargs(hideBin(process.argv))
 	.option('username', {
 		alias: 'un',
 		describe: 'Username for the platform',
+		demandOption: true,
 		type: 'string'
 	})
 	.option('scenario', {
 		alias: 's',
 		describe: `Use a predefined contribution scenario instead of fetching user contributions: ${SCENARIOS.join(', ')}. Without a value, random is used.`,
+		choices: SCENARIOS,
+		default: 'random',
 		type: 'string'
 	})
 	.option('output', {
@@ -42,29 +46,16 @@ const argv = yargs(hideBin(process.argv))
 		default: 'contribution-graph.svg',
 		type: 'string'
 	})
-	.check((parsedArgv) => {
-		const hasScenario = parsedArgv.scenario !== undefined;
-		if (hasScenario) return true;
 
-		const missingOptions = ['platform', 'gameTheme', 'username'].filter((option) => !parsedArgv[option]);
-		if (missingOptions.length > 0) {
-			throw new Error(`Missing required argument${missingOptions.length > 1 ? 's' : ''}: ${missingOptions.join(', ')}`);
-		}
-
-		return true;
-	})
 	.help().argv;
-
-const hasScenario = argv.scenario !== undefined;
-const scenarioName = argv.scenario === '' || argv.scenario === undefined ? 'random' : argv.scenario;
 
 const renderer = new ArcadeRenderer({
 	game: argv.game,
-	platform: argv.platform ?? 'github',
-	username: argv.username ?? (hasScenario ? `scenario-${scenarioName}` : ''),
+	platform: argv.platform,
+	username: argv.username,
 	gameTheme: argv.gameTheme ?? (argv.platform === 'gitlab' ? 'gitlab' : 'github'),
 	scenario: argv.scenario,
-	includeFutureContributions: hasScenario,
+	includeFutureContributions: argv.platform === 'scenario',
 	svgCallback: (svg) => {
 		fs.writeFileSync(argv.output, svg);
 		console.log(`SVG saved to ${argv.output}`);

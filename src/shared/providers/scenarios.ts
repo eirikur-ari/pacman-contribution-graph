@@ -1,20 +1,17 @@
 import type { Contribution, ContributionLevel } from '../types';
+import { SCENARIOS, type Scenario } from '../types';
 
 export const SCENARIO_WEEKS = 53;
 export const SCENARIO_DAYS = 7;
 
-export const SCENARIOS = ['full', 'empty', 'random', 'checkerboard', 'gradient', 'streaks'] as const;
-
-export type ScenarioName = (typeof SCENARIOS)[number];
-
 interface ScenarioResult {
-	name: ScenarioName;
+	name: Scenario;
 	contributions: Contribution[];
 }
 
-export const isScenarioName = (value: string): value is ScenarioName => SCENARIOS.includes(value as ScenarioName);
+export const isScenarioName = (value: string): value is Scenario => SCENARIOS.includes(value as Scenario);
 
-export const resolveScenarioName = (scenarioArg: string | undefined): ScenarioName => {
+export const resolveScenarioName = (scenarioArg: string | undefined): Scenario => {
 	const scenarioName = scenarioArg === '' || scenarioArg === undefined ? 'random' : scenarioArg;
 
 	if (!isScenarioName(scenarioName)) {
@@ -33,20 +30,21 @@ export const generateScenarioContributions = (scenarioArg?: string): ScenarioRes
 	};
 };
 
-const createScenarioCounts = (name: ScenarioName): number[][] => {
+const createScenarioCounts = (name: Scenario): number[][] => {
 	switch (name) {
 		case 'empty':
 			return createEmptyCounts();
 		case 'full':
 			return createFullCounts(8);
-		case 'random':
-			return createRandomCounts({ density: 0.5, min: 1, max: 8 });
 		case 'checkerboard':
 			return createCheckerboardCounts({ low: 0, high: 10 });
 		case 'gradient':
 			return createGradientCounts({ min: 0, max: 12 });
 		case 'streaks':
 			return createStreakCounts();
+		case 'random':
+		default:
+			return createRandomCounts({ density: 0.5, min: 1, max: 8 });
 	}
 };
 
