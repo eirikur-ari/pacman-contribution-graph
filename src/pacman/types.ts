@@ -56,18 +56,13 @@ export interface StoreType extends BaseStore {
 	monthLabels: string[];
 	pacmanMouthOpen: boolean;
 	gameInterval: number;
-	/**
-	 * Per-frame snapshots of moving entities only.
-	 * Grid state is NOT stored here — cell changes are tracked in cellEvents.
-	 * This matches the pattern used by Breakout, Galaga, and Bomberman.
-	 */
 	gameHistory: {
 		pacman: Pacman;
 		ghosts: Ghost[];
 	}[];
-	/** Initial cell colors before any cells are eaten [col][row] */
+	/** Initial cell colors [col][row], captured before any cells are eaten. */
 	initialColors: string[][];
-	/** Ordered list of cell color-change events keyed by gameHistory frame index */
+	/** Sparse list of cell color-change events, keyed by frame index. */
 	cellEvents: { frameIndex: number; x: number; y: number; color: string }[];
 	config: Config;
 	useGithubThemeColor: boolean;

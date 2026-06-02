@@ -6,12 +6,10 @@ import { RendererUnits } from './renderer-units';
 const SVG_KEY_TIMES_PRECISION = 4;
 
 const generateAnimatedSVG = (store: StoreType) => {
-	// Dimensions and duration
 	const svgWidth = GRID_WIDTH * (CELL_SIZE + GAP_SIZE);
-	const svgHeight = GRID_HEIGHT * (CELL_SIZE + GAP_SIZE) + 30; // Extra height for time counter
+	const svgHeight = GRID_HEIGHT * (CELL_SIZE + GAP_SIZE) + 30;
 	const totalDurationMs = store.gameHistory.length * DELTA_TIME;
 
-	// Basic SVG structure
 	let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
 	svg += `<desc>Generated with pacman-contribution-graph on ${new Date()}</desc>`;
 	svg += `<metadata>
@@ -26,7 +24,6 @@ const generateAnimatedSVG = (store: StoreType) => {
 
 	svg += generateGhostsPredefinition();
 
-	// Month labels
 	let lastMonth = '';
 	for (let y = 0; y < GRID_WIDTH; y++) {
 		if (store.monthLabels[y] !== lastMonth) {
@@ -43,7 +40,7 @@ const generateAnimatedSVG = (store: StoreType) => {
 			const cellY = y * (CELL_SIZE + GAP_SIZE) + 15;
 			const cellColorAnimation = getCellAnimationData(store, x, y);
 			svg += `<rect id="c-${x}-${y}" x="${cellX}" y="${cellY}" width="${CELL_SIZE}" height="${CELL_SIZE}" rx="5" fill="${Utils.getCurrentTheme(store).intensityColors[0]}">
-				<animate attributeName="fill" dur="${totalDurationMs}ms" repeatCount="indefinite" 
+				<animate attributeName="fill" dur="${totalDurationMs}ms" repeatCount="indefinite" calcMode="discrete"
 					values="${cellColorAnimation.values}" 
 					keyTimes="${cellColorAnimation.keyTimes}"/>
 			</rect>`;
@@ -106,12 +103,9 @@ const generateAnimatedSVG = (store: StoreType) => {
 			values="${generatePacManPath(0.55)};${generatePacManPath(0.05)};${generatePacManPath(0.55)}"/>
 	</path>`;
 
-	// Process each ghost separately
 	store.ghosts.forEach((ghost, index) => {
-		// Generate position animation for this ghost
 		const ghostPositionAnimation = generateChangingValuesAnimation(store, generateGhostPositions(store, index));
 
-		// Create a group for the ghost
 		svg += `<g id="ghost${index}" transform="translate(0,0)">
 			<animateTransform attributeName="transform" type="translate" 
 				dur="${totalDurationMs}ms" repeatCount="indefinite"
@@ -119,22 +113,16 @@ const generateAnimatedSVG = (store: StoreType) => {
 				values="${ghostPositionAnimation.values}"
 				additive="replace"/>`;
 
-		// Map all possible state + direction combinations for this ghost
 		const stateChanges = mapGhostStateChanges(store, index);
 
-		// For each possible state, create a <use> element with visibility animation
 		for (const [state, keyframes] of Object.entries(stateChanges)) {
-			// Ignore empty states
 			if (keyframes.length === 0) continue;
 
-			// Use the correct ID for reference (blinky-right, scared, etc)
 			const href = `#ghost-${state}`;
 
-			// Build the strings for the animation
 			const keyTimes = keyframes.map((kf) => kf.time.toFixed(SVG_KEY_TIMES_PRECISION)).join(';');
 			const values = keyframes.map((kf) => (kf.visible ? 'visible' : 'hidden')).join(';');
 
-			// Initial visibility
 			const initialVisibility = keyframes[0].visible ? 'visible' : 'hidden';
 
 			svg += `<use href="${href}" width="${CELL_SIZE}" height="${CELL_SIZE}" visibility="${initialVisibility}">
@@ -145,7 +133,6 @@ const generateAnimatedSVG = (store: StoreType) => {
 			</use>`;
 		}
 
-		// Close the ghost group
 		svg += `</g>`;
 	});
 
@@ -153,95 +140,63 @@ const generateAnimatedSVG = (store: StoreType) => {
 	return svg;
 };
 
-// Helper function to map all ghost state changes
 function mapGhostStateChanges(store: StoreType, ghostIndex: number) {
-	// A map of states for frames where they are visible
-	// Key: "name-direction" or "scared" or "eyes-direction"
-	// Value: array of {time: number, visible: boolean}
+	// Maps each "name-direction" / "scared" / "eyes-direction" state to an array
+	// of visibility keyframes, so each state can be shown/hidden independently.
 	const stateChanges: Record<string, { time: number; visible: boolean }[]> = {};
 
-	// Initialize possible states for all ghosts
 	const allPossibleStates = [
-		'blinky-up',
-		'blinky-down',
-		'blinky-left',
-		'blinky-right',
-		'inky-up',
-		'inky-down',
-		'inky-left',
-		'inky-right',
-		'pinky-up',
-		'pinky-down',
-		'pinky-left',
-		'pinky-right',
-		'clyde-up',
-		'clyde-down',
-		'clyde-left',
-		'clyde-right',
-		'eyes-up',
-		'eyes-down',
-		'eyes-left',
-		'eyes-right',
+		'blinky-up', 'blinky-down', 'blinky-left', 'blinky-right',
+		'inky-up',   'inky-down',   'inky-left',   'inky-right',
+		'pinky-up',  'pinky-down',  'pinky-left',  'pinky-right',
+		'clyde-up',  'clyde-down',  'clyde-left',  'clyde-right',
+		'eyes-up',   'eyes-down',   'eyes-left',   'eyes-right',
 		'scared'
 	];
 
-	// Initialize all states as hidden
 	allPossibleStates.forEach((state) => {
 		stateChanges[state] = [{ time: 0, visible: false }];
 	});
 
-	// Get the initial ghost
 	const initialGhost = store.ghosts[ghostIndex];
 	if (!initialGhost) return stateChanges;
 
-	// Set the initial state correctly
 	const initialState = initialGhost.scared
 		? 'scared'
 		: initialGhost.name === 'eyes'
 			? `eyes-${initialGhost.direction || 'right'}`
 			: `${initialGhost.name}-${initialGhost.direction || 'right'}`;
 
-	// Mark this state as visible initially
 	stateChanges[initialState] = [{ time: 0, visible: true }];
 
-	// Track last state
 	let lastState = initialState;
 
-	// Process each frame of the game history
 	store.gameHistory.forEach((state, frameIndex) => {
-		// If the ghost does not exist in this frame, skip
 		if (ghostIndex >= state.ghosts.length) return;
 
 		const ghost = state.ghosts[ghostIndex];
 		const currentTime = frameIndex / (store.gameHistory.length - 1);
 
-		// Determine the current state
 		const currentState = ghost.scared
 			? 'scared'
 			: ghost.name === 'eyes'
 				? `eyes-${ghost.direction || 'right'}`
 				: `${ghost.name}-${ghost.direction || 'right'}`;
 
-		// If the status has changed
 		if (currentState !== lastState) {
-			// Hide previous state
 			stateChanges[lastState].push({ time: currentTime, visible: false });
 
-			// Show new status
 			if (!stateChanges[currentState]) {
 				stateChanges[currentState] = [{ time: 0, visible: false }];
 			}
 			stateChanges[currentState].push({ time: currentTime, visible: true });
 
-			// Update the latest status
 			lastState = currentState;
 		}
 	});
 
-	// Ensure the last state remains visible until the end
 	stateChanges[lastState].push({ time: 1, visible: true });
 
-	// Ensure all other states are hidden until the end
 	Object.keys(stateChanges).forEach((state) => {
 		if (state !== lastState && stateChanges[state].length > 0) {
 			const lastKeyframe = stateChanges[state][stateChanges[state].length - 1];
@@ -289,23 +244,15 @@ const generatePacManRotations = (store: StoreType): string[] => {
 				return `0 ${pivit} ${pivit}`;
 		}
 	};
-	// Position interpolates linearly between snapshot[i] and snapshot[i+1]
-	// during interval i. The direction stored in snapshot[i+1] is the
-	// direction Pac-Man took during that move, so it must be displayed for
-	// the entire slide, not just at its end. Shift the rotation values one
-	// frame forward so the discrete keyframe at time keyTimes[i] holds the
-	// direction of the slide that begins there.
+	// The direction stored in snapshot[i+1] is the direction taken during the slide
+	// that begins at keyframe i, so shift one frame forward to keep it in sync.
 	return store.gameHistory.map((_, i) => {
 		const lookaheadIndex = Math.min(i + 1, store.gameHistory.length - 1);
 		return directionToRotation(store.gameHistory[lookaheadIndex].pacman.direction);
 	});
 };
 
-/**
- * Build cell color animation data from cellEvents (sparse change list).
- * Replaces the old per-frame grid snapshot approach.
- * Cost: O(events for this cell) instead of O(totalFrames).
- */
+/** Build cell color animation data from the sparse cellEvents list. */
 const getCellAnimationData = (store: StoreType, x: number, y: number): AnimationData => {
 	const totalFrames = store.gameHistory.length;
 	const initialColor = store.initialColors[x]?.[y] ?? Utils.getCurrentTheme(store).intensityColors[0];
