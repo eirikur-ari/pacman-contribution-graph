@@ -283,15 +283,21 @@ const checkAndEatPoint = (store: StoreType) => {
 		store.config.pointsIncreasedCallback(store.pacman.totalPoints);
 
 		const theme = Utils.getCurrentTheme(store);
-		// Power-up activated in the cell
 		if (cell.level === 'FOURTH_QUARTILE') {
 			activatePowerUp(store);
 		}
 
-		// "Delete" point from cell
 		cell.level = 'NONE';
 		cell.color = theme.intensityColors[0];
 		cell.commitsCount = 0;
+
+		// Record the color change, keyed to the frame that pushSnapshot will write next.
+		store.cellEvents.push({
+			frameIndex: store.gameHistory.length,
+			x: store.pacman.x,
+			y: store.pacman.y,
+			color: cell.color
+		});
 	}
 };
 

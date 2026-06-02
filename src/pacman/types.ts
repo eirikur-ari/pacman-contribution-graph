@@ -59,8 +59,11 @@ export interface StoreType extends BaseStore {
 	gameHistory: {
 		pacman: Pacman;
 		ghosts: Ghost[];
-		grid: GridCell[][];
 	}[];
+	/** Initial cell colors [col][row], captured before any cells are eaten. */
+	initialColors: string[][];
+	/** Sparse list of cell color-change events, keyed by frame index. */
+	cellEvents: { frameIndex: number; x: number; y: number; color: string }[];
 	config: Config;
 	useGithubThemeColor: boolean;
 }

@@ -95,10 +95,12 @@ const startGame = async (store: StoreType) => {
 	store.frameCount = 0;
 	store.aliveSteps = 0;
 	store.gameHistory = [];
+	store.cellEvents = [];
 	store.ghosts.forEach((g) => (g.scared = false));
 	GhostsMovement.resetGameMode();
 
 	store.grid = Utils.createGridFromData(store);
+	store.initialColors = store.grid.map((col) => col.map((cell) => cell.color));
 
 	const remainingCells = () => store.grid.some((row) => row.some((cell) => cell.commitsCount > 0));
 
@@ -107,7 +109,10 @@ const startGame = async (store: StoreType) => {
 		placeGhosts(store);
 	}
 
-	while (remainingCells()) {
+	// Cap frames to prevent unbounded runtime on dense grids (matches Breakout/Galaga).
+	const MAX_FRAMES = 3000;
+
+	while (remainingCells() && store.gameHistory.length < MAX_FRAMES) {
 		await updateGame(store);
 	}
 	await updateGame(store);
@@ -216,9 +221,8 @@ const updateGame = async (store: StoreType) => {
 /* ---------- snapshot helper ---------- */
 const pushSnapshot = (store: StoreType) => {
 	store.gameHistory.push({
-		pacman: { ...store.pacman },
-		ghosts: store.ghosts.map((g) => ({ ...g })),
-		grid: store.grid.map((row) => row.map((col) => ({ ...col })))
+		pacman: { ...store.pacman, recentPositions: [...store.pacman.recentPositions] },
+		ghosts: store.ghosts.map((g) => ({ ...g }))
 	});
 };
 
